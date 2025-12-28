@@ -1,0 +1,109 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Secret Detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install Security Tools
+        run: |
+          pip install bandit safety
+      
+      - name: Python Security Scan
+        run: |
+          bandit -r app/ -f json -o bandit-report.json || true
+          bandit -r app/ -f txt
+      
+      - name: Dependency Security Check
+        run: |
+          safety check --file=app/requirements.txt || true
+      
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+          retention-days: 30
+```
+
+6. **Save it** (Ctrl+S)
+
+---
+
+### Step 2: Create a Placeholder in Scripts Folder
+
+We need the scripts folder to exist on GitHub:
+
+1. **In VS Code**, go to the `scripts` folder
+2. **Right-click** → New File
+3. **Name it:** `.gitkeep`
+4. **Leave it empty**, just save it
+
+*(This is a trick to make Git track empty folders)*
+
+---
+
+### Step 3: Push Everything to GitHub
+
+1. **Open GitHub Desktop**
+2. **You should see:**
+   - `security-scan.yml` 
+   - `.gitkeep`
+3. **Summary:** Type `Add security scanning pipeline`
+4. **Click "Commit to main"**
+5. **Click "Push origin"**
+
+---
+
+## 🎉 Watch the Magic Happen!
+
+After you push:
+
+1. **Go to GitHub.com** → Your repository
+2. **Click the "Actions" tab** (at the top)
+3. **You should see "Security Pipeline" starting to run!**
+4. **Click on it to watch**
+
+**This is the most exciting part!** Your pipeline will automatically scan your code! 🔍
+
+---
+
+## ✅ Verify Your Files on GitHub
+
+After pushing, check GitHub.com - you should now see:
+```
+security-pipeline-demo/
+├── .github/
+│   └── workflows/
+│       └── security-scan.yml ← NEW!
+├── app/
+│   ├── app.py
+│   └── requirements.txt
+├── scripts/
+│   └── .gitkeep ← NEW!
+├── Dockerfile
+└── README.md
